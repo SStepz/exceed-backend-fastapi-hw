@@ -47,7 +47,9 @@ def get_reservation_by_name(name:str):
 
 @app.get("/reservation/by-room/{room_id}")
 def get_reservation_by_room(room_id: int):
-    pass
+    data = collection.find({"room_id": room_id},{"_id": False})
+    ans = list(data)
+    return {"result": ans}
 
 @app.post("/reservation")
 def reserve(reservation : Reservation):
