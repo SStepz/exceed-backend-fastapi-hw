@@ -41,7 +41,9 @@ def room_avaliable(room_id: int, start_date: str, end_date: str):
 
 @app.get("/reservation/by-name/{name}")
 def get_reservation_by_name(name:str):
-    pass
+    data = collection.find({"name": name},{"_id": False})
+    ans = list(data)
+    return {"result": ans}
 
 @app.get("/reservation/by-room/{room_id}")
 def get_reservation_by_room(room_id: int):
