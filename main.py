@@ -2,11 +2,18 @@ from fastapi import FastAPI, HTTPException, Body
 from datetime import date
 from pymongo import MongoClient
 from pydantic import BaseModel
+from dotenv import load_dotenv
+import os
+import urllib
 
-DATABASE_NAME = "hotel"
+load_dotenv('.env')
+user = os.getenv('user')
+password = urllib.parse.quote(os.getenv('password'))
+
+DATABASE_NAME = "exceed02"
 COLLECTION_NAME = "reservation"
-MONGO_DB_URL = "mongodb://localhost"
-MONGO_DB_PORT = 27017
+MONGO_DB_URL = f"mongodb://{user}:{urllib.parse.quote(password)}@mongo.exceed19.online"
+MONGO_DB_PORT = 8443
 
 
 class Reservation(BaseModel):
@@ -53,12 +60,52 @@ def get_reservation_by_room(room_id: int):
 
 @app.post("/reservation")
 def reserve(reservation : Reservation):
-    pass
+    if reservation.room_id < 1 or reservation.room_id > 10:
+        raise HTTPException(status_code=400)
+    if reservation.start_date > reservation.end_date:
+        raise HTTPException(status_code=400)
+    if not room_avaliable(reservation.room_id, str(reservation.start_date), str(reservation.end_date)):
+        raise HTTPException(status_code=400)
+    collection.insert_one(
+        {
+            "name": reservation.name,
+            "start_date": str(reservation.start_date),
+            "end_date": str(reservation.end_date),
+            "room_id": reservation.room_id
+        }
+    )
+    return {"message": "Reservation created"}
 
 @app.put("/reservation/update")
 def update_reservation(reservation: Reservation, new_start_date: date = Body(), new_end_date: date = Body()):
-    pass
+    if new_start_date > new_end_date:
+        raise HTTPException(status_code=400)
+    if not room_avaliable(reservation.room_id, str(new_start_date), str(new_end_date)):
+        raise HTTPException(status_code=400)
+    collection.update_one(
+        {
+            "name": reservation.name,
+            "start_date": str(reservation.start_date),
+            "end_date": str(reservation.end_date),
+            "room_id": reservation.room_id
+        },
+        {
+            "$set": {
+                "start_date": str(new_start_date),
+                "end_date": str(new_end_date)
+            }
+        }
+    )
+    return {"message": "Reservation updated"}
 
 @app.delete("/reservation/delete")
 def cancel_reservation(reservation: Reservation):
-    pass
+    collection.delete_one(
+        {
+            "name": reservation.name,
+            "start_date": str(reservation.start_date),
+            "end_date": str(reservation.end_date),
+            "room_id": reservation.room_id
+        }
+    )
+    return {"message": "Reservation deleted"}
